@@ -1,0 +1,28 @@
+{
+  "name": "connect-stream",
+  "version": "0.1.0",
+  "description": "connect middleware for 206 partial content request",
+  "main": "lib/stream.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/geta6/connect-stream.git"
+  },
+  "keywords": [
+    "partial",
+    "utility",
+    "connect",
+    "video",
+    "stream"
+  ],
+  "dependencies": {
+    "mime": "*"
+  },
+  "devDependencies": {
+    "coffee-script": "*"
+  },
+  "author": "geta6",
+  "licenses": "BSD",
+  "bugs": {
+    "url": "https://github.com/geta6/connect-stream/issues"
+  }
+}
