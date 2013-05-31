@@ -22,7 +22,10 @@ module.exports = (req, res, next) ->
     headers['Content-Type'] or= mime.lookup src
     headers['Last-Modified'] or= stat.mtime
 
-    if !req.headers.range or stat.size is 0
+    if stat.size is 0
+      return failure()
+
+    else if !req.headers.range
       headers['Content-Length'] or= stat.size
       res.writeHead 200, headers
 
