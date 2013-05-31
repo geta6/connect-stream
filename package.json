@@ -1,6 +1,6 @@
 {
   "name": "connect-stream",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "connect middleware for 206 partial content request",
   "main": "lib/stream.js",
   "repository": {
@@ -12,7 +12,8 @@
     "utility",
     "connect",
     "video",
-    "stream"
+    "stream",
+    "206"
   ],
   "dependencies": {
     "mime": "*"
