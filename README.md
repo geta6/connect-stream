@@ -8,17 +8,13 @@ connect (express) middleware for _206 Partial Content_.
 
 now `Buffer` is not acceptable.
 
+
 ## about
 
 connect-stream extends responsibility of `206 Partial Content` request.
 
 now, you can stream large binary file (something like __H.264 mp4__ or __mp3 audio__ and more) to mobile device.
 
----
-
-connect-streamは`206 Partial Content`への応答能力を拡張します。
-
-モバイルデバイスに対して __H.264 mp4__ や __mp3 audio__ のようなバイナリファイルをストリーミング配信できます。
 
 ## install
 
@@ -67,6 +63,15 @@ app.get '/movie', (req, res) ->
 * optional, execute on failure stream
   * on `!fs.existsSync(filepath)`
   * on `stream.on('error')`
+
+
+## 日本語でおk
+
+* iPhoneとかandroidとかでアニメ見れるよ！！やったね！！
+* `createReadStream`で`pipe`しています
+* 前のバージョンに比べ、`out of memory`の発生回数・`memoryUsage`の減少を確認しています
+* 試してみたい方は`stream.on 'end'`の中に`console.log process.memoryUsage()`でも突っ込んで`cake build`してください
+
 
 ---
 
