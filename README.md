@@ -18,7 +18,7 @@ now, you can stream large binary file (something like __H.264 mp4__ or __mp3 aud
 
 connect-streamは`206 Partial Content`への応答能力を拡張します。
 
-モバイルデバイスに対して__H.264 mp4__や__mp3 audio__のようなバイナリファイルをストリーミング配信できます。
+モバイルデバイスに対して __H.264 mp4__ や __mp3 audio__ のようなバイナリファイルをストリーミング配信できます。
 
 ## install
 
