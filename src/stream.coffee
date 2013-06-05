@@ -87,6 +87,7 @@ module.exports = (cacheOptions = {}) ->
             checkIn.apply @, arguments
           readStream.pipe res
 
-    if cacheOptions.static and req.url isnt '/'
-      return stream src, {} if fs.existsSync (src = path.join cacheOptions.path, req.url)
+    url = decodeURI req.url
+    if cacheOptions.static and url isnt '/'
+      return stream src, {} if fs.existsSync (src = path.join cacheOptions.path, url)
     return next()
