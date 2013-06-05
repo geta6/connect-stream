@@ -1,7 +1,7 @@
 # modules
 
 fs = require 'fs'
-zlib = require 'zlib'
+# zlib = require 'zlib'
 path = require 'path'
 
 _ = require 'underscore'
@@ -87,6 +87,6 @@ module.exports = (cacheOptions = {}) ->
             checkIn.apply @, arguments
           readStream.pipe res
 
-    if cacheOptions.static
+    if cacheOptions.static and req.url isnt '/'
       return stream src, {} if fs.existsSync (src = path.join cacheOptions.path, req.url)
     return next()
