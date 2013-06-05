@@ -12,6 +12,7 @@ mime = require 'mime'
 
 defaultCacheOptions =
   path: path.resolve 'public'
+  static: yes
   fd:
     max: 1000
     maxAge: 1000 * 60 * 60
@@ -35,7 +36,7 @@ module.exports = (cacheOptions = {}) ->
       res.writeHead 404, 'Content-Type': 'text/plain'
       return res.end "Cannot #{req.method.toUpperCase()} #{req.url}"
 
-    res.stream = (src, streamOptions = {}) ->
+    stream = res.stream = (src, streamOptions = {}) ->
       streamOptions.success or= defaultSuccessFunction
       streamOptions.failure or= defaultFailureFunction
       streamOptions.headers or= {}
@@ -50,8 +51,9 @@ module.exports = (cacheOptions = {}) ->
           streamOptions.success null, stat, [0, 1]
           return res.end()
 
-        streamOptions.headers['Last-Modified'] or= modified
+        streamOptions.headers['Cache-Control'] or= "public"
         streamOptions.headers['Content-Type'] or= mime.lookup src
+        streamOptions.headers['Last-Modified'] or= modified
         streamOptions.headers['ETag'] or= "\"#{stat.dev}-#{stat.ino}-#{stat.mtime.getTime()}\""
 
         cache.fd.get src, (err, fd) ->
@@ -68,14 +70,13 @@ module.exports = (cacheOptions = {}) ->
             [ini, end] = for n in (req.headers.range.replace 'bytes=', '').split '-'
               parseInt n, 10
             end = total - 1 if (isNaN end) or (end is 0)
-            streamOptions.headers['Connection'] or= 'close'
-            streamOptions.headers['Cache-Control'] or= 'public'
             streamOptions.headers['Content-Length'] = end + 1 - ini
             streamOptions.headers['Content-Range'] = "bytes #{ini}-#{end}/#{total}"
             streamOptions.headers['Accept-Range'] = 'bytes'
             streamOptions.headers['Transfer-Encoding'] or= 'chunked'
             res.writeHead 206, streamOptions.headers
 
+          console.log streamOptions.headers
           readStream = fs.createReadStream src, { fd: fd, start: ini, end: end }
           readStream.destroy = ->
           readStream.on 'end', ->
@@ -86,4 +87,6 @@ module.exports = (cacheOptions = {}) ->
             checkIn.apply @, arguments
           readStream.pipe res
 
+    if cacheOptions.static
+      return stream src, {} if fs.existsSync (src = path.join cacheOptions.path, req.url)
     return next()

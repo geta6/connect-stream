@@ -3,7 +3,7 @@
   connect-stream extends `206 Partial Content` responsibility of express.
 
   you can stream static binary file anyway.
-  
+
   cache `file descriptor` and `fs.stat`.
 
 
@@ -12,13 +12,6 @@
   * `v0.2` initial method change.
   * `v0.1` stream method change.
   * `v0.0` develop
-
-## roadmap
-
-  * `v0.4` use as static module
-  * `v0.3` content cache
-  * ✓ `v0.2` fd cache
-  * ✓ `v0.1` ReadbleStream
 
 ## install
 
