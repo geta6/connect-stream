@@ -76,7 +76,6 @@ module.exports = (cacheOptions = {}) ->
             streamOptions.headers['Transfer-Encoding'] or= 'chunked'
             res.writeHead 206, streamOptions.headers
 
-          console.log streamOptions.headers
           readStream = fs.createReadStream src, { fd: fd, start: ini, end: end }
           readStream.destroy = ->
           readStream.on 'end', ->
