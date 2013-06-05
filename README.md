@@ -4,7 +4,7 @@
 
   you can stream static binary file anyway.
   
-  cache `file descripter` and `fs.stat`.
+  cache `file descriptor` and `fs.stat`.
 
 
 ## update
@@ -131,7 +131,7 @@ res.stream('test.mp4', {
 * `connect-stream`では、`Range`が存在する場合には上記処理を、存在しない場合には通常通り返送します。
 * 文字通り、`ReadableStream`での返送を行います。
 * `If-Modified-Since`や`If-Not-Match`との比較も行い、適切な`304`レスポンスを送出します。
-* `file descripter`と`fs.stat`の結果についてはキャッシュを取ります、コンテンツキャッシュはクライアントに任せる形態を取っています。
+* `file descriptor`と`fs.stat`の結果についてはキャッシュを取ります、コンテンツキャッシュはクライアントに任せる形態を取っています。
 
 ---
 
