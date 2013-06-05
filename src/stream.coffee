@@ -1,59 +1,89 @@
+# modules
+
 fs = require 'fs'
+zlib = require 'zlib'
 path = require 'path'
+
+_ = require 'underscore'
+
+AC = require 'async-cache'
+FD = (require 'fd')()
 mime = require 'mime'
 
-module.exports = (req, res, next) ->
+defaultCacheOptions =
+  path: path.resolve 'public'
+  fd:
+    max: 1000
+    maxAge: 1000 * 60 * 60
+  stat:
+    max: 5000
+    maxAge: 1000 * 60
 
-  res.stream = (src, headers = {}, failure) ->
-    failure = headers if typeof headers is 'function'
-    failure or= ->
-      res.writeHead 404
-      res.end()
+module.exports = (cacheOptions = {}) ->
+  cacheOptions = _.defaults cacheOptions, defaultCacheOptions
+  cacheOptions.path = (path.resolve cacheOptions.path) if '/' isnt cacheOptions.path.substr 0, 1
+  cache =
+    fd: AC _.extend cacheOptions.fd,
+      load: FD.open.bind FD
+      dispose: FD.close.bind FD
+    stat: AC _.extend cacheOptions.stat,
+      load: (addr, done) -> fs.stat addr, done
 
-    src = path.resolve src if '/' isnt src.substr 0, 1
-    return failure() unless fs.existsSync src
+  return (req, res, next) ->
+    defaultSuccessFunction = ->
+    defaultFailureFunction = ->
+      res.writeHead 404, 'Content-Type': 'text/plain'
+      return res.end "Cannot #{req.method.toUpperCase()} #{req.url}"
 
-    stat = fs.statSync src
+    res.stream = (src, streamOptions = {}) ->
+      streamOptions.success or= defaultSuccessFunction
+      streamOptions.failure or= defaultFailureFunction
+      streamOptions.headers or= {}
+      src = (path.join cacheOptions.path, src) if '/' isnt src.substr 0, 1
 
-    if (String req.headers['if-modified-since']) is (String stat.mtime)
-      res.writeHead 304
-      return res.end()
+      cache.stat.get src, (err, stat) ->
+        return (streamOptions.failure err, stat, [0, 1]) if err or !stat.isFile()
 
-    headers['Content-Type'] or= mime.lookup src
-    headers['Last-Modified'] or= stat.mtime
+        modified = stat.mtime.toUTCString()
+        if (String req.headers['if-modified-since']) is modified
+          res.statusCode = 304
+          streamOptions.success null, stat, [0, 1]
+          return res.end()
 
-    if stat.size is 0
-      return failure()
+        streamOptions.headers['Last-Modified'] or= modified
+        streamOptions.headers['Content-Type'] or= mime.lookup src
+        streamOptions.headers['ETag'] or= "\"#{stat.dev}-#{stat.ino}-#{stat.mtime.getTime()}\""
 
-    else if !req.headers.range
-      headers['Content-Length'] or= stat.size
-      res.writeHead 200, headers
+        cache.fd.get src, (err, fd) ->
+          checkIn = FD.checkinfn src, fd
+          FD.checkout src, fd
 
-      stream = fs.createReadStream src
-      stream.on 'open', -> stream.pipe res
+          unless req.headers.range
+            [ini, end] = [0, stat.size]
+            streamOptions.headers['Content-Length'] = stat.size
+            res.writeHead 200, streamOptions.headers
 
-    else
-      total = stat.size
-      [ini, end] = for n in (req.headers.range.replace 'bytes=', '').split '-'
-        parseInt n, 10
-      end = total - 1 if (isNaN end) or (end is 0)
-      headers['Connection'] or= 'close'
-      headers['Cache-Control'] or= 'private'
-      headers['Content-Length'] = end + 1 - ini
-      headers['Content-Range'] = "bytes #{ini}-#{end}/#{total}"
-      headers['Accept-Range'] = 'bytes'
-      headers['Transfer-Encoding'] or= 'chunked'
-      res.writeHead 206, headers
-      stream = fs.createReadStream src, { start: ini, end: end }
-      stream.on 'open', -> stream.pipe res
+          else
+            total = stat.size
+            [ini, end] = for n in (req.headers.range.replace 'bytes=', '').split '-'
+              parseInt n, 10
+            end = total - 1 if (isNaN end) or (end is 0)
+            streamOptions.headers['Connection'] or= 'close'
+            streamOptions.headers['Cache-Control'] or= 'public'
+            streamOptions.headers['Content-Length'] = end + 1 - ini
+            streamOptions.headers['Content-Range'] = "bytes #{ini}-#{end}/#{total}"
+            streamOptions.headers['Accept-Range'] = 'bytes'
+            streamOptions.headers['Transfer-Encoding'] or= 'chunked'
+            res.writeHead 206, streamOptions.headers
 
-    stream.on 'error', ->
-      return failure()
+          readStream = fs.createReadStream src, { fd: fd, start: ini, end: end }
+          readStream.destroy = ->
+          readStream.on 'end', ->
+            streamOptions.success null, stat, [ini, end]
+            checkIn.apply @, arguments
+          readStream.on 'error', (err) ->
+            streamOptions.failure err, stat, [ini, end]
+            checkIn.apply @, arguments
+          readStream.pipe res
 
-    stream.on 'end', ->
-      #console.log process.memoryUsage()
-      stream.destroy()
-      stream = null
-      return res.end()
-
-  return next()
+    return next()

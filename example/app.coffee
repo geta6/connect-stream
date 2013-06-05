@@ -15,7 +15,7 @@ app.use express.static path.join __dirname, 'public'
 app.use express.errorHandler()
 
 app.get '/', (req, res, next) ->
-  res.stream (path.resolve 'public', 'sample.mp4'), ->
+  res.stream '/Users/geta/Desktop/1-01 はたらく魔王さま！.mp4', ->
     res.writeHead 404
     res.end 'Document Not Found'
 

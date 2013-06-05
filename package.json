@@ -1,8 +1,9 @@
 {
   "name": "connect-stream",
-  "version": "0.1.2",
+  "version": "0.2.1",
   "description": "connect middleware for 206 partial content request",
   "main": "lib/stream.js",
+  "daemon": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/geta6/connect-stream.git"
@@ -16,7 +17,10 @@
     "206"
   ],
   "dependencies": {
-    "mime": "*"
+    "fd": "*",
+    "mime": "*",
+    "async-cache": "*",
+    "underscore": "*"
   },
   "devDependencies": {
     "coffee-script": "*"
