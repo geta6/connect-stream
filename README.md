@@ -9,6 +9,7 @@
 
 ## update
 
+  * `v0.3` using st
   * `v0.2` initial method change.
   * `v0.1` stream method change.
   * `v0.0` develop
@@ -30,19 +31,15 @@ app.use(app.router());
 
 ### global options
 
-  default options here.
+  options as same as [isaacs/st](https://github.com/isaacs/st)
 
 ```
 {
-    path: path.resolve('public'),
-    fd: {
-      max: 1000
-      maxAge: 1000 * 60 * 60
-    },
-    stat: {
-      max: 5000,
-      maxAge: 1000 * 60
-    }
+  static: true,
+  url: '/',
+  path: path.resolve('public'),
+  index: false,
+  passthrough: true
 }
 ```
 
@@ -62,59 +59,45 @@ app.get('/movie', function (req, res) {
 #### filepath &lt;String&gt;
 
   * __required__
-  * realtive path from `global_options.path`
+  * relative path from `global_options.path`
   * if starts with `/` then regard `filepath` as absolute path.
 
 #### options &lt;Object&gt;
 
   * __optional__
 
+##### debug &lt;Boolean&gt;
+
+  * turn on debug mode (logging path, fd, memoryUsage)
+
 ##### headers &lt;Object&gt;
 
   * add/overwrite response header
 
-##### success &lt;function(err, stat, [ini, end])&gt;
+##### complete &lt;function(err, ini, end)&gt;
 
-  * called on success to response
-  * __already sent headers__
-
-###### Arguments
-
-  * `err` always `null`
-  * `stat` is `fs.stat` result
+  * called on end of response
   * `ini` is first-byte of HTTP-Range
   * `end` is end-byte of HTTP-Range
 
-##### failure &lt;function(err, stat [ini, end])&gt;
+##### `Function`
 
-  * called on failure to response
-  * __need to send response manually__
-  * if omit this function, send text `Cannot #{METHOD} #{ROUTE}` with 404 status
+  * attach to `complete` function
 
-###### Arguments
+## Tips
 
-  * `err` is `Error` object
-  * `stat` is `fs.stat` result
-  * `ini` is first-byte of HTTP-Range
-  * `end` is end-byte of HTTP-Range
-
-## tips
-
-  * `success` function called multiple on partial request
+  * `complete` function called multiple on partial request
   * for example, when you would like to count up DB, try this
 
 ```
-res.stream('test.mp4', {
-  success: function (err, stat, range) {
-    if (range[0] === 0 && range[1] === 1) {
-      Item.countUp()
-    }
+res.stream('test.mp4', function (err, ini, end) {
+  if (ini === 0 && end === 1) {
+    countUpItem()
   }
 });
 ```
-
-  * first partial request is always `range = [0, 1]`.
-  * `connect-stream` pass `range = [0, 1]` on `304`
+  * first partial request is always `0-1`.
+  * `connect-stream` pass `0-1` on `304`
 
 ## 日本語でおk
 

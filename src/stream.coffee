@@ -1,92 +1,116 @@
 # modules
 
 fs = require 'fs'
-# zlib = require 'zlib'
+st = require 'st'
 path = require 'path'
-
-_ = require 'underscore'
-
-AC = require 'async-cache'
-FD = (require 'fd')()
 mime = require 'mime'
 
-defaultCacheOptions =
-  path: path.resolve 'public'
-  static: yes
-  fd:
-    max: 1000
-    maxAge: 1000 * 60 * 60
-  stat:
-    max: 5000
-    maxAge: 1000 * 60
+module.exports = (options = {}) ->
 
-module.exports = (cacheOptions = {}) ->
-  cacheOptions = _.defaults cacheOptions, defaultCacheOptions
-  cacheOptions.path = (path.resolve cacheOptions.path) if '/' isnt cacheOptions.path.substr 0, 1
-  cache =
-    fd: AC _.extend cacheOptions.fd,
-      load: FD.open.bind FD
-      dispose: FD.close.bind FD
-    stat: AC _.extend cacheOptions.stat,
-      load: (addr, done) -> fs.stat addr, done
+  options.static or= yes
+  options.url or= '/'
+  options.path or= path.resolve 'public'
+  options.index or= no
+  options.passthrough or= yes
+
+  mount = st options
 
   return (req, res, next) ->
-    defaultSuccessFunction = ->
-    defaultFailureFunction = ->
-      res.writeHead 404, 'Content-Type': 'text/plain'
-      return res.end "Cannot #{req.method.toUpperCase()} #{req.url}"
 
-    stream = res.stream = (src, streamOptions = {}) ->
-      streamOptions.success or= defaultSuccessFunction
-      streamOptions.failure or= defaultFailureFunction
-      streamOptions.headers or= {}
-      src = (path.join cacheOptions.path, src) if '/' isnt src.substr 0, 1
+    defaults =
+      complete: (err, ini, end) ->
 
-      cache.stat.get src, (err, stat) ->
-        return (streamOptions.failure err, stat, [0, 1]) if err or !stat.isFile()
+    res.stream = (src, args...) ->
+      throw new Error 'NOSOURCE' unless src
+      res.end() if req.method.toUpperCase() is 'HEAD'
 
-        modified = stat.mtime.toUTCString()
-        if (String req.headers['if-modified-since']) is modified
-          res.statusCode = 304
-          streamOptions.success null, stat, [0, 1]
-          return res.end()
+      streams = {}
+      streams.complete or= defaults.complete
+      streams.headers or= {}
+      streams.debug or= no
 
-        streamOptions.headers['Cache-Control'] or= "public"
-        streamOptions.headers['Content-Type'] or= mime.lookup src
-        streamOptions.headers['Last-Modified'] or= modified
-        streamOptions.headers['ETag'] or= "\"#{stat.dev}-#{stat.ino}-#{stat.mtime.getTime()}\""
+      for arg in args
+        if typeof arg is 'function'
+          streams.complete = arg
+        else if typeof arg is 'object'
+          if arg.headers
+            streams.headers = arg.headers
+          if arg.debug
+            sterams.debug = arg.debug
+          if arg.complete and typeof arg.complete is 'function'
+            sterams.complete = arg.complete
 
-        cache.fd.get src, (err, fd) ->
-          checkIn = FD.checkinfn src, fd
-          FD.checkout src, fd
+      src = (path.join options.path, src) if '/' isnt src.substr 0, 1
+
+      mount._this.cache.fd.get src, (err, fd) ->
+        if err
+          streams.complete err, 0, 0
+          res.writeHead 404, 'Content-Type': 'text/plain'
+          return res.end "Cannot Stream #{req.url}"
+
+        mount._this.fdman.checkout src, fd
+        fdend = mount._this.fdman.checkinfn src, fd
+        success = (ini, end) ->
+          streams.complete null, ini, end
+          return fdend()
+        failure = (err) ->
+          streams.complete err, 0, 0
+          res.writeHead 404, 'Content-Type': 'text/plain'
+          res.end "Cannot Stream #{req.url}"
+          return fdend()
+
+        mount._this.cache.stat.get "#{fd}:#{src}", (err, stat) ->
+          return failure err if err
+          return failure (new Error 'ISDIR') if stat.isDirectory()
+
+          mtime = stat.mtime.getTime()
+          if (ims = req.headers['if-modified-since'])
+            ims = new Date(ims).getTime()
+            if ims >= mtime
+              res.statusCode = 304
+              res.end()
+              return success 0, 1
+          etag = "\"#{stat.dev}-#{stat.ino}-#{mtime}\""
+          if etag is req.headers['if-none-match']
+            res.statusCode = 304
+            res.end()
+            return success 0, 1
+
+          streams.headers['Cache-Control'] or= 'public'
+          streams.headers['Content-Type'] or= mime.lookup src
+          streams.headers['Last-Modified'] or= stat.mtime.toUTCString()
+          streams.headers['ETag'] or= etag
 
           unless req.headers.range
             [ini, end] = [0, stat.size]
-            streamOptions.headers['Content-Length'] = stat.size
-            res.writeHead 200, streamOptions.headers
+            streams.headers['Content-Length'] = stat.size
+            res.writeHead 200, streams.headers
 
           else
             total = stat.size
             [ini, end] = for n in (req.headers.range.replace 'bytes=', '').split '-'
               parseInt n, 10
             end = total - 1 if (isNaN end) or (end is 0)
-            streamOptions.headers['Content-Length'] = end + 1 - ini
-            streamOptions.headers['Content-Range'] = "bytes #{ini}-#{end}/#{total}"
-            streamOptions.headers['Accept-Range'] = 'bytes'
-            streamOptions.headers['Transfer-Encoding'] or= 'chunked'
-            res.writeHead 206, streamOptions.headers
+            streams.headers['Content-Length'] = end + 1 - ini
+            streams.headers['Content-Range'] = "bytes #{ini}-#{end}/#{total}"
+            streams.headers['Accept-Range'] = 'bytes'
+            streams.headers['Transfer-Encoding'] or= 'chunked'
+            res.writeHead 206, streams.headers
 
           readStream = fs.createReadStream src, { fd: fd, start: ini, end: end }
           readStream.destroy = ->
           readStream.on 'end', ->
-            streamOptions.success null, stat, [ini, end]
-            checkIn.apply @, arguments
+            process.nextTick ->
+              if streams.debug
+                console.warn 'Streaming %s fd=%d\n', src, fd, process.memoryUsage()
+              return success ini, end
           readStream.on 'error', (err) ->
-            streamOptions.failure err, stat, [ini, end]
-            checkIn.apply @, arguments
+            console.error 'Error serving %s fd=%d\n%s', src, fd, err.stack || err.message
+            return failure err
           readStream.pipe res
-
-    url = decodeURI req.url
-    if cacheOptions.static and url isnt '/'
-      return stream src, {} if fs.existsSync (src = path.join cacheOptions.path, url)
+    # url = decodeURI req.url
+    # if cacheOptions.static and url isnt '/'
+    #   return stream src, {} if fs.existsSync (src = path.join cacheOptions.path, url)
+    if options.static
+      return if mount req, res, next
     return next()

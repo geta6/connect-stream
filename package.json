@@ -1,6 +1,6 @@
 {
   "name": "connect-stream",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "connect middleware for 206 partial content request",
   "main": "lib/stream.js",
   "daemon": true,
@@ -17,10 +17,8 @@
     "206"
   ],
   "dependencies": {
-    "fd": "*",
-    "mime": "*",
-    "async-cache": "*",
-    "underscore": "*"
+    "st": "*",
+    "mime": "*"
   },
   "devDependencies": {
     "coffee-script": "*"
