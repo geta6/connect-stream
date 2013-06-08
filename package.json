@@ -3,14 +3,12 @@
   "version": "0.3.0",
   "description": "connect middleware for 206 partial content request",
   "main": "lib/stream.js",
-  "daemon": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/geta6/connect-stream.git"
   },
   "keywords": [
     "partial",
-    "utility",
     "connect",
     "video",
     "stream",
