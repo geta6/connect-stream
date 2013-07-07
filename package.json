@@ -1,6 +1,6 @@
 {
   "name": "connect-stream",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "connect middleware for 206 partial content request",
   "main": "lib/stream.js",
   "repository": {
@@ -15,14 +15,13 @@
     "206"
   ],
   "dependencies": {
-    "st": "*",
     "mime": "*"
   },
   "devDependencies": {
     "coffee-script": "*"
   },
   "author": "geta6",
-  "licenses": "BSD",
+  "licenses": "MIT",
   "bugs": {
     "url": "https://github.com/geta6/connect-stream/issues"
   }
