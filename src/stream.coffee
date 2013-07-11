@@ -56,6 +56,8 @@ module.exports = (req, res, next) ->
       readstream = fs.createReadStream src, { start: ini, end: end }
       readstream.on 'end', ->
         return options.complete null, [ini, end], src
+        if ini is 0 and end is total
+          options.complete e, [0, 1], src
       readstream.on 'error', (err) ->
         throw "ERRSTREAM #{src} #{ini}-#{end} #{err.stack || err.message}"
       return readstream.pipe res

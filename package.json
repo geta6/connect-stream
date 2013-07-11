@@ -1,6 +1,6 @@
 {
   "name": "connect-stream",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "connect middleware for 206 partial content request",
   "main": "lib/stream.js",
   "repository": {
