@@ -102,7 +102,7 @@ class Stream
       options = opt if typeof opt is 'object'
       callback = opt if typeof opt is 'function'
     options.headers or= {}
-    src = path.join @path, src
+    src = path.resolve src
     fs.stat src, (err, stats) =>
       if err
         callback err, 0, 0
