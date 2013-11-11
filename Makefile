@@ -14,6 +14,4 @@ mocha:
 	--slow 20 \
 	tests
 
-clean:
-
-# .PHONY: build watch test clean
+.PHONY: build watch test mocha

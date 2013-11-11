@@ -1,31 +1,25 @@
-
-/**
- * Module dependencies.
- */
-
 var express = require('express');
 var routes = require('./routes');
-var http = require('http');
 var path = require('path');
 
 var app = express();
+var stream = require('../../');
 
-// all environments
 app.set('port', process.env.PORT || 3000);
 app.use(express.favicon());
-app.use(express.logger('dev'));
 app.use(express.bodyParser());
 app.use(express.methodOverride());
-app.use(require('../../')(path.join(__dirname, 'public')));
+app.use(stream(path.resolve('tests', 'server', 'public')));
 app.use(app.router);
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.errorHandler());
 
-// development only
-if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
-}
+app.get('/', function(req, res) {
+  res.setHeader('content-type', 'text/html');
+  res.end('<video src="/sample.mp4" width="100%" controls autoplay></video><img src="/sample.png" width="100%">')
+});
 
-app.get('/', routes.index);
+app.get(/\/(.*)/, function (req, res) {
+  res.stream(req.params[0]);
+});
 
 module.exports = app
-

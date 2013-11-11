@@ -1,7 +1,7 @@
 {
   "name": "connect-stream",
-  "version": "0.5.0",
-  "description": "connect middleware for 206 partial content request",
+  "version": "1.0.0",
+  "description": "A module for streaming static files. Does etags, caching, partial response, etc.",
   "main": "lib/stream.js",
   "scripts": {
     "test": "make test"
@@ -13,15 +13,13 @@
   "keywords": [
     "partial",
     "connect",
-    "video",
-    "stream",
-    "206"
+    "stream"
   ],
   "dependencies": {
     "mime": "~1.2.11",
     "negotiator": "~0.3.0",
-    "async-cache": "~0.1.3",
-    "fd": "~0.0.2"
+    "fd": "0.0.2",
+    "async-cache": "~0.1.3"
   },
   "devDependencies": {
     "coffee-script": "~1.6.3",

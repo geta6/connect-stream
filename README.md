@@ -1,85 +1,123 @@
 # connect-stream
 
+  Serving static file with the given paths.
+
+  Inspired by [isaacs/st](https://github.com/isaacs/st)
+
   ![](https://nodei.co/npm/connect-stream.png)
 
-  connect-stream adds 206 responsibility to connect (also express).
+  ![](https://travis-ci.org/geta6/connect-stream.png)
+
 
 ## install
 
-```
-npm install connect-stream
-```
+    npm i connect-stream
 
 ## usage
 
-```js
-app.use(require('connect-stream')({
-  path: path.resolve('public')
-}));
-app.use(app.router());
-app.get('/movie', function (req, res) {
-  res.stream('movies/sample.mp4');
-});
-```
+  connect-stream respond to Partial-Content Request correctly.
 
-## global options __optional__
+  Here are all the options described with their defaults values and a few possible settings you might choose to use:
 
-* set default value for each `res.stream`.
+    stream = require('connect-stream');
 
-### path [String]
+    app.use(stream(path.resolve('public'), { // root path for static files. defaults to `/`
+      trim: false, // do not trim query strings
+      trim: true, // trim all query strings using url.parse
 
-  * absolute path for streams, default from `path.resolve()`.
+      concatenate: 'resolve', // use path.resolve on concatenate root and src path
+      concatenate: 'join', // use path.join on concatenate root and src path
 
-### headers [Object]
+      passthrough: true, // calls next/returns instead of returning a 404 error
+      passthrough: false, // returns 404 when a file is not found
 
-  * overwrite response headers.
+      cache: { // specify cache:false to turn off caching entirely
+        fd: {
+          max: 1000, // number of fd's to hang on to
+          maxAge: 1000 * 60 * 60, // amount of ms before fd's expire
+        },
 
-### complete [Function(err, range, src)]
+        stat: {
+          max: 5000, // number of stat objects to hang on to
+          maxAge: 1000 * 60, // number of ms that stats are good for
+        },
 
-  * function called on end of response.
+        content: {
+          max: 1024 * 1024 * 64, // how much memory to use on caching contents
+          maxAge: 1000 * 60 * 10, // how long to cache contents for
+        }
+      }
+    }));
 
-## method
-
-### res.stream( _filepath_ , _{options}_);
-
-#### filepath [String] __required__
-
-  * relative path from `options.path`
-  * if starts with `/` then regard as absolute path.
-
-#### options [Object or Function] __optional__
-
-##### options.headers [Object]
-
-  * overwrite response headers.
-
-##### options.complete [Function(err, range, src)]
-
-  * function called on end of response.
-  * `range` is array.
-  * `range[0]` is first-byte of HTTP-Range
-  * `range[1]` is end-byte of HTTP-Range
-  * `src` is absolute path for target.
-
-## Tips
-
-  * `complete` function called multiple on partial request.
-  * first of partial request is always `0-1`.
-  * for example, when you would like to count up DB, try below.
-
-```
-res.stream('movies/test.mp4', function (err, range, src) {
-  if (range[0] === 0 && range[1] === 1) {
-    Item.find({path: src}, function (err, item) {
-      item.playcount++;
-      item.save();
+    app.get(/^\/(.*)\.mp4$/, function (req, res) {
+      res.stream(req.params[0] + '.mp4');
     });
-  }
-});
-```
 
+## gzip
+
+  browser requested with encoding 'gzip' allowed, returns gzip stream with 200.
+
+## cache
+
+### server side
+
+  file descriptor, `fs.stat` and gzipped content will be cached with configured caching storategies.
+
+  partial response don't allowed gzip encoding, that content won't be cached.
+
+### client side
+
+  captured `if-modified-since` or `if-none-match`, return 304.
+
+## behavior
+
+### concatenate
+
+#### join method
+
+    app.use(stream(path.resolve('public')));
+
+    app.get('/a.mp4', function (req, res) {
+      res.stream('/a.mp4'); // returns "./public/a.mp4"
+    });
+
+#### resolve method
+
+    app.use(stream(path.resolve('public'), {
+      concatenate: 'resolve'
+    }));
+
+    app.get('/a.mp4', function (req, res) {
+      res.stream('/tmp/a.mp4'); // returns "/tmp/a.mp4"
+    });
+
+### passthrough
+
+#### true
+
+    app.use(stream(path.resolve('public')));
+    app.use(function (req, res) {
+      res.stream(path.resolve('public', '404.html')); // returns 404.html with 404
+    });
+
+    app.get('/notexists.mp4', function (req, res) {
+      res.stream('/notexists.mp4'); // call next()
+    });
+
+#### false
+
+    app.use(stream(path.resolve('public')));
+    app.use(function (req, res) {
+      res.stream(path.resolve('public', '404.html')); // ignored
+    });
+    app.use(express.errorHandler()); // called
+
+    app.get('/notexists.mp4', function (req, res) {
+      res.stream('/notexists.mp4'); // call next(err)
+    });
 
 ## MIT LICENSE
+
 Copyright &copy; 2013 geta6 licensed under [MIT](http://opensource.org/licenses/MIT)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
