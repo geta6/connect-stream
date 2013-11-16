@@ -53,27 +53,42 @@
       res.stream(req.params[0] + '.mp4');
     });
 
-## gzip
+## upgrade guide
+
+* some method chaged.
+  * setup interface
+  * internal behavior
+
+### example
+
+```
+app.use require 'connect-stream'     # old
+app.use (require 'connect-stream')() # new
+```
+
+## feature
+
+### gzip
 
   browser requested with encoding 'gzip' allowed, returns gzip stream with 200.
 
-## cache
+### cache
 
-### server side
+#### server side
 
   file descriptor, `fs.stat` and gzipped content will be cached with configured caching storategies.
 
   partial response don't allowed gzip encoding, that content won't be cached.
 
-### client side
+#### client side
 
   captured `if-modified-since` or `if-none-match`, return 304.
 
-## behavior
+### behavior
 
-### concatenate
+#### concatenate
 
-#### join method
+##### join method
 
     app.use(stream(path.resolve('public')));
 
@@ -81,7 +96,7 @@
       res.stream('/a.mp4'); // returns "./public/a.mp4"
     });
 
-#### resolve method
+##### resolve method
 
     app.use(stream(path.resolve('public'), {
       concatenate: 'resolve'
@@ -91,9 +106,9 @@
       res.stream('/tmp/a.mp4'); // returns "/tmp/a.mp4"
     });
 
-### passthrough
+#### passthrough
 
-#### true
+##### true
 
     app.use(stream(path.resolve('public')));
     app.use(function (req, res) {
@@ -104,7 +119,7 @@
       res.stream('/notexists.mp4'); // call next()
     });
 
-#### false
+##### false
 
     app.use(stream(path.resolve('public')));
     app.use(function (req, res) {
