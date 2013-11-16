@@ -59,11 +59,31 @@
   * setup interface
   * internal behavior
 
-### example
+### interface example
 
-```
+```coffee
 app.use require 'connect-stream'     # old
 app.use (require 'connect-stream')() # new
+```
+
+### behavior example
+
+```coffee
+app.use (require 'connect-stream') path.resolve('public'),
+  concatenate: 'join' # default
+
+app.get (req, res) ->
+  res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
+                          # new, stream from "public/tmp/a.mp4" (path.join (path.resolve 'public'), '/tmp/a.mp4')
+```
+
+```coffee
+app.use (require 'connect-stream') path.resolve('public'),
+  concatenate: 'resolve'
+
+app.get (req, res) ->
+  res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
+                          # new, stream from "/tmp/a.mp4" (path.resolve 'public', '/tmp/a.mp4')
 ```
 
 ## feature
