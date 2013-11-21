@@ -1,8 +1,8 @@
 module.exports = (root, opts) ->
   stream = new Stream root, opts
   return (req, res, next) ->
-    res.stream = (src) ->
-      stream.serve src, req, res, next
+    res.stream = (src, cb = ->) ->
+      stream.serve src, cb, req, res, next
     return next()
 
 class Stream
@@ -132,14 +132,19 @@ class Stream
     return next() if @opts.passthrough and res.statusCode is 404
     return next err
 
-  cache: (fdend, res) ->
+  cache: (res, fdend) ->
     fdend()
     res.statusCode = 304
     return res.end()
 
-  serve: (src, req, res, next) ->
+  serve: (src, cb, req, res, next) ->
 
-    throw Error 'no src' unless src
+    unless src
+      throw new Error '`src` should not be blank, res.stream(src, callback).'
+
+    if typeof cb isnt 'function'
+      console.error '`callback` should not be function, res.stream(src, callback).'
+      cb = ->
 
     src = path[@opts.concatenate] @opts.root, src
     src = decodeURIComponent url.parse(src).pathname if @opts.trim
@@ -147,12 +152,16 @@ class Stream
     return next() unless src
 
     @store.fd.get src, (err, fd) =>
-      return @error err, res, next if err
+      if err
+        cb err, null
+        return @error err, res, next
       @fdman.checkout src, fd
       fdend = @fdman.checkinfn src, fd
 
       @store.stat.get "#{fd}:#{src}", (err, stat) =>
-        return @error err, res, next, fdend if err
+        if err
+          cb err, null
+          return @error err, res, next, fdend
 
         range = @parseRange req
 
@@ -166,19 +175,25 @@ class Stream
         unless @isValidRange ini, end
           res.statusCode = 416
           res.setHeader 'content-length', 0
+          cb (new Error 'out of range'), [ini, end], partial
           return res.end()
 
         if (since = req.headers['if-modified-since'])
           since = (new Date since).getTime()
-          return @cache fdend, res if since && since >= stat.mtime.getTime()
+          if since && since >= stat.mtime.getTime()
+            cb null, [ini, end], partial
+            return @cache res, fdend
 
         etag = "\"#{stat.dev}-#{stat.ino}-#{stat.mtime.getTime()}\""
         if (match = req.headers['if-none-match'])
-          return @cache fdend, res if match is etag
+          cb null, [ini, end], partial
+          if match is etag
+            return @cache res, fdend
 
         if stat.isDirectory()
           err = new Error
           err.code = 'EISDIR'
+          cb err, [ini, end], partial
           return @error err, res, next, fdend
 
         res.setHeader 'cache-control', 'public'
@@ -198,13 +213,17 @@ class Stream
         if !partial and @store.content.has storekey
           @store.content.get storekey, (err, content) =>
             fdend()
-            return @error err, res, next if err
+            if err
+              cb err, [ini, end], partial
+              return @error err, res, next
             if @isAcceptGzip(src, req) and content.gz
               res.setHeader 'content-encoding', 'gzip'
               res.setHeader 'content-length', content.gz.length
+              cb null, [ini, end], partial
               return res.end content.gz
             else
               res.setHeader 'content-length', content.length
+              cb null, [ini, end], partial
               return res.end content
 
         else
@@ -238,4 +257,5 @@ class Stream
             stream.pipe res
 
           stream.on 'end', ->
+            cb null, [ini, end], partial
             process.nextTick fdend
