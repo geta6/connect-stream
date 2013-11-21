@@ -9,13 +9,25 @@
   ![](https://travis-ci.org/geta6/connect-stream.png)
 
 
-## install
+## Usage
 
-    npm i connect-stream
+  Start coding:
 
-## usage
+    $ npm i connect-stream
 
-  connect-stream respond to Partial-Content Request correctly.
+  Include in your project:
+
+    app.set (require 'connect-stream') path.resolve('public'), {}
+
+  Use:
+
+    app.get (req, res) ->
+      return res.stream 'movie.mp4', (err, range, isPartial) ->
+
+
+## How to use
+
+  connect-stream respond to Partial-Content Request (216) correctly.
 
   Here are all the options described with their defaults values and a few possible settings you might choose to use:
 
@@ -49,44 +61,64 @@
       }
     }));
 
+    var callback = function (err, range, isFirstStream) {
+      console.error(err); // instanceof Error or null
+      console.log(range); // array ([ini, end]), request range of partial content
+                          // is null on error
+                          // is [0, stat.size - 1] on normal request
+      console.log(isFirstStream); // bool, request is first partial request or not
+    };
+
     app.get(/^\/(.*)\.mp4$/, function (req, res) {
-      res.stream(req.params[0] + '.mp4');
+      res.stream(req.params[0] + '.mp4', callback);
     });
 
-## upgrade guide
 
-* some method chaged.
-  * setup interface
-  * internal behavior
+## Upgrade
+
+  some method chaged.
+
 
 ### interface example
 
-```coffee
-app.use require 'connect-stream'     # old
-app.use (require 'connect-stream')() # new
-```
+    app.use require 'connect-stream'     # old
+    app.use (require 'connect-stream')() # new
+
 
 ### behavior example
 
-```coffee
-app.use (require 'connect-stream') path.resolve('public'),
-  concatenate: 'join' # default
+    app.use (require 'connect-stream') path.resolve('public'),
+      concatenate: 'join' # default
 
-app.get (req, res) ->
-  res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
-                          # new, stream from "public/tmp/a.mp4" (path.join (path.resolve 'public'), '/tmp/a.mp4')
-```
+    app.get (req, res) ->
+      res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
+                              # new, stream from "public/tmp/a.mp4" (path.join (path.resolve 'public'), '/tmp/a.mp4')
 
-```coffee
-app.use (require 'connect-stream') path.resolve('public'),
-  concatenate: 'resolve'
 
-app.get (req, res) ->
-  res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
-                          # new, stream from "/tmp/a.mp4" (path.resolve 'public', '/tmp/a.mp4')
-```
+    app.use (require 'connect-stream') path.resolve('public'),
+      concatenate: 'resolve'
 
-## feature
+    app.get (req, res) ->
+      res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
+                              # new, stream from "/tmp/a.mp4" (path.resolve 'public', '/tmp/a.mp4')
+
+
+## Tips
+
+### count up your database on partial request (e.g. playing movie)
+
+  partial request requests many at one request
+
+  you should use callback for count playing
+
+  Example:
+
+    app.get (req, res) ->
+      res.stream 'movie.mp4', (err, range, isFirstStream) ->
+        # response ended
+        countupDatabase() if isFirstStream
+
+## Feature
 
 ### gzip
 

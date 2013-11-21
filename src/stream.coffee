@@ -168,32 +168,34 @@ class Stream
         if range is null
           partial = no
           [ini, end] = [0, stat.size - 1]
+          isFirstStream = yes
         else
           partial = yes
           [ini, end] = [range.ini, range.end]
+          isFirstStream = (ini is 0 and end is 1)
 
         unless @isValidRange ini, end
           res.statusCode = 416
           res.setHeader 'content-length', 0
-          cb (new Error 'out of range'), [ini, end], partial
+          cb (new Error 'out of range'), [ini, end], isFirstStream
           return res.end()
 
         if (since = req.headers['if-modified-since'])
           since = (new Date since).getTime()
           if since && since >= stat.mtime.getTime()
-            cb null, [ini, end], partial
+            cb null, [ini, end], isFirstStream
             return @cache res, fdend
 
         etag = "\"#{stat.dev}-#{stat.ino}-#{stat.mtime.getTime()}\""
         if (match = req.headers['if-none-match'])
-          cb null, [ini, end], partial
+          cb null, [ini, end], isFirstStream
           if match is etag
             return @cache res, fdend
 
         if stat.isDirectory()
           err = new Error
           err.code = 'EISDIR'
-          cb err, [ini, end], partial
+          cb err, [ini, end], isFirstStream
           return @error err, res, next, fdend
 
         res.setHeader 'cache-control', 'public'
@@ -214,16 +216,16 @@ class Stream
           @store.content.get storekey, (err, content) =>
             fdend()
             if err
-              cb err, [ini, end], partial
+              cb err, [ini, end], isFirstStream
               return @error err, res, next
             if @isAcceptGzip(src, req) and content.gz
               res.setHeader 'content-encoding', 'gzip'
               res.setHeader 'content-length', content.gz.length
-              cb null, [ini, end], partial
+              cb null, [ini, end], isFirstStream
               return res.end content.gz
             else
               res.setHeader 'content-length', content.length
-              cb null, [ini, end], partial
+              cb null, [ini, end], isFirstStream
               return res.end content
 
         else
@@ -257,5 +259,5 @@ class Stream
             stream.pipe res
 
           stream.on 'end', ->
-            cb null, [ini, end], partial
+            cb null, [ini, end], isFirstStream
             process.nextTick fdend

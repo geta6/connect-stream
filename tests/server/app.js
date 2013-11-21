@@ -19,7 +19,8 @@ app.get('/', function(req, res) {
 });
 
 app.get(/\/(.*)/, function (req, res) {
-  res.stream(req.params[0], function (err, range, partial) {
+  res.stream(req.params[0], function (err, range, isFirstStream) {
+    //console.log(isFirstStream);
     //console.log('range', range);
     //console.log('partial', partial);
   });
