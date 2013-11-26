@@ -1,6 +1,6 @@
 {
   "name": "connect-stream",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A module for streaming static files. Does etags, caching, partial response, etc.",
   "main": "lib/stream.js",
   "scripts": {

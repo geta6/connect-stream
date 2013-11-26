@@ -172,7 +172,7 @@ class Stream
         else
           partial = yes
           [ini, end] = [range.ini, range.end]
-          isFirstStream = (ini is 0 and end is 1)
+          isFirstStream = (ini is 0 and end in [0, 1])
 
         unless @isValidRange ini, end
           res.statusCode = 416
