@@ -17,12 +17,15 @@
 
   Include in your project:
 
-    app.set (require 'connect-stream') path.resolve('public'), {}
+    var stream = require('connect-stream'); // function
+    app.set(stream(path.resolve('public'), {}));
 
   Use:
 
-    app.get (req, res) ->
-      return res.stream 'movie.mp4', (err, range, isPartial) ->
+    app.get(function (req, res) {
+      return res.stream('movie.mp4', function (err, range, first) {
+      });
+    });
 
 
 ## How to use
@@ -40,7 +43,7 @@
       concatenate: 'resolve', // use path.resolve on concatenate root and src path
       concatenate: 'join', // use path.join on concatenate root and src path
 
-      passthrough: true, // calls next/returns instead of returning a 404 error
+      passthrough: true, // calls next() instead of returning a 404 error
       passthrough: false, // returns 404 when a file is not found
 
       cache: { // specify cache:false to turn off caching entirely
@@ -71,6 +74,17 @@
 
     app.get(/^\/(.*)\.mp4$/, function (req, res) {
       res.stream(req.params[0] + '.mp4', callback);
+    });
+
+    var options = {
+      headers: {
+        'content-type': 'application/octet-stream',
+        'cache-control': 'public'
+      }
+    };
+
+    app.get(/^\/download\/(.*)\.mp4$/, function (req, res) {
+      res.stream(req.params[0] + '.mp4', options, callback);
     });
 
 

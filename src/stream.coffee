@@ -1,8 +1,13 @@
 module.exports = (root, opts) ->
   stream = new Stream root, opts
   return (req, res, next) ->
-    res.stream = (src, cb = ->) ->
-      stream.serve src, cb, req, res, next
+    res.stream = (src, args...) ->
+      opt = {}
+      cb = ->
+      for arg in args
+        cb = arg if typeof arg is 'function'
+        opt = arg if typeof arg is 'object'
+      stream.serve src, opt, cb, req, res, next
     return next()
 
 class Stream
@@ -137,7 +142,7 @@ class Stream
     res.statusCode = 304
     return res.end()
 
-  serve: (src, cb, req, res, next) ->
+  serve: (src, opt, cb, req, res, next) ->
 
     unless src
       throw new Error '`src` should not be blank, res.stream(src, callback).'
@@ -198,10 +203,10 @@ class Stream
           cb err, [ini, end], isFirstStream
           return @error err, res, next, fdend
 
-        res.setHeader 'cache-control', 'public'
+        res.setHeader 'cache-control', opt.headers?['cache-control'] || 'public'
         res.setHeader 'last-modified', stat.mtime.toUTCString()
         res.setHeader 'etag', etag
-        res.setHeader 'content-type', mime.lookup path.extname src
+        res.setHeader 'content-type', opt.headers?['content-type'] || mime.lookup path.extname src
 
         unless partial
           res.statusCode = 200
