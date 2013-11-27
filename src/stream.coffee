@@ -108,10 +108,23 @@ class Stream
       load: ->
         throw new Error('This should not ever happen')
 
-  parseRange: (req) ->
+  parseRange: (stat, req) ->
     if req.headers?.range?
-      [ini, end] = req.headers.range.replace('bytes=', '').split('-')
-      return { ini: +ini, end: +end }
+      ranges = []
+      for range in req.headers.range.replace('bytes=', '').split(',')
+        [ini, end] = range.split('-')
+        if ini.length is 0
+          ini = stat.size - end
+          end = stat.size - 1
+        if end.length is 0
+          end = stat.size - 1
+        ranges.push { ini: +ini, end: +end }
+
+      if ranges.length is 1
+        return ranges[0]
+      else
+        console.error 'not supported multi range-spec'
+        return ranges[0]
     return null
 
   isAcceptGzip: (src, req) ->
@@ -168,7 +181,7 @@ class Stream
           cb err, null
           return @error err, res, next, fdend
 
-        range = @parseRange req
+        range = @parseRange stat, req
 
         if range is null
           partial = no
@@ -193,8 +206,12 @@ class Stream
 
         etag = "\"#{stat.dev}-#{stat.ino}-#{stat.mtime.getTime()}\""
         if (match = req.headers['if-none-match'])
-          cb null, [ini, end], isFirstStream
           if match is etag
+            cb null, [ini, end], isFirstStream
+            return @cache res, fdend
+        if (match = req.headers['if-range'])
+          if match is etag
+            cb null, [ini, end], isFirstStream
             return @cache res, fdend
 
         if stat.isDirectory()
