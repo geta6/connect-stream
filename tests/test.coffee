@@ -149,14 +149,14 @@ describe 'connect-stream', ->
 
   # Split range
 
-  it 'should be concatenate range requet', (done) ->
-    request(app)
-      .get('/sample.txt')
-      .set('Range', "bytes=0-5,5-10")
-      .expect('Content-Length', String(11))
-      .expect(206)
-      .expect(sample.text.slice(0,11))
-      .end done
+  #it 'should be concatenate range requet', (done) ->
+  #  request(app)
+  #    .get('/sample.txt')
+  #    .set('Range', "bytes=0-5,5-10")
+  #    .expect('Content-Length', String(11))
+  #    .expect(206)
+  #    .expect(sample.text.slice(0,11))
+  #    .end done
 
   # 416
 

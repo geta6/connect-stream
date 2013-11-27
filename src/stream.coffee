@@ -119,13 +119,9 @@ class Stream
           end = stat.size - 1
         if end.length is 0
           end = stat.size - 1
-        ranges.push { ini: +ini, end: +end }
-
-      if ranges.length is 1
-        return ranges[0]
-      else
-        console.error 'not supported multi range-spec'
-        return ranges[0]
+        [ini, end] = [+ini, +end]
+        ranges.push { ini: ini, end: end }
+      return ranges
     return null
 
   isAcceptGzip: (src, req) ->
@@ -182,13 +178,16 @@ class Stream
           cb err, null
           return @error err, res, next, fdend
 
-        range = @parseRange stat, req
+        ranges = @parseRange stat, req
 
-        if range is null
+        if ranges is null
           partial = no
           [ini, end] = [0, stat.size - 1]
           isFirstStream = yes
         else
+          unless ranges.length is 1
+            console.error 'not supported multi range-spec'
+          range = ranges[0]
           partial = yes
           [ini, end] = [range.ini, range.end]
           isFirstStream = (ini is 0 and end in [0, 1])
