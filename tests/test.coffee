@@ -93,7 +93,7 @@ describe 'connect-stream', ->
       .expect(sample.text.slice(6, 11))
       .end done
 
-  it 'should be get all text with partial requesst', (done) ->
+  it 'should be get all text with range requet', (done) ->
     request(app)
       .get('/sample.txt')
       .set('Range', "bytes=0-#{sample.stat.size - 1}")
@@ -102,7 +102,7 @@ describe 'connect-stream', ->
       .expect(sample.text)
       .end done
 
-  it 'should be get all text with over partial requesst', (done) ->
+  it 'should be get all text with over range request', (done) ->
     request(app)
       .get('/sample.txt')
       .set('Range', "bytes=0-#{sample.stat.size + 1000}")
@@ -120,12 +120,59 @@ describe 'connect-stream', ->
       .expect('')
       .end done
 
-  # 416
-
-  it 'should be coped with invalid range request', (done) ->
+  it 'should be get all text with from range requet', (done) ->
     request(app)
       .get('/sample.txt')
-      .set('Range', 'bytes=2000-')
+      .set('Range', "bytes=0-")
+      .expect('Content-Length', String(sample.stat.size))
+      .expect(206)
+      .expect(sample.text)
+      .end done
+
+  it 'should be get all text with last range requet', (done) ->
+    request(app)
+      .get('/sample.txt')
+      .set('Range', "bytes=-#{sample.stat.size}")
+      .expect('Content-Length', String(sample.stat.size))
+      .expect(206)
+      .expect(sample.text)
+      .end done
+
+  it 'should be get all text with over last range requet', (done) ->
+    request(app)
+      .get('/sample.txt')
+      .set('Range', "bytes=-#{sample.stat.size + 1000}")
+      .expect('Content-Length', String(sample.stat.size))
+      .expect(206)
+      .expect(sample.text)
+      .end done
+
+  # Split range
+
+  it 'should be concatenate range requet', (done) ->
+    request(app)
+      .get('/sample.txt')
+      .set('Range', "bytes=0-5,5-10")
+      .expect('Content-Length', String(11))
+      .expect(206)
+      .expect(sample.text.slice(0,11))
+      .end done
+
+  # 416
+
+  it 'should be invalid with start > end range request', (done) ->
+    request(app)
+      .get('/sample.txt')
+      .set('Range', "bytes=10-0")
+      .expect('Content-Length', String(0))
+      .expect(416)
+      .expect('')
+      .end done
+
+  it 'should be invalid with over from range requet', (done) ->
+    request(app)
+      .get('/sample.txt')
+      .set('Range', "bytes=#{sample.stat.size + 1000}-")
       .expect('Content-Length', String(0))
       .expect(416)
       .expect('')

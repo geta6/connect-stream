@@ -115,6 +115,7 @@ class Stream
         [ini, end] = range.split('-')
         if ini.length is 0
           ini = stat.size - end
+          ini = 0 if ini < 0
           end = stat.size - 1
         if end.length is 0
           end = stat.size - 1
