@@ -13,142 +13,168 @@
 
   Start coding:
 
-    $ npm i connect-stream
+```sh
+$ npm i connect-stream
+```
 
   Include in your project:
 
-    var stream = require('connect-stream'); // function
-    app.set(stream(path.resolve('public'), {}));
+```javascript
+var stream = require('connect-stream'); // function
+app.set(stream(path.resolve('public'), {}));
+```
 
   Use:
 
-    app.get(function (req, res) {
-      return res.stream('movie.mp4', function (err, range, first) {
-      });
-    });
+```javascript
+app.get(function (req, res) {
+  return res.stream('movie.mp4', function (err, range, first) {
+  });
+});
+```
 
 
 ## How to use
 
-  connect-stream respond to Partial-Content Request (216) correctly.
+  connect-stream respond to Range Request (HTTP 206) correctly.
+
+  [14.35 Range - W3, RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616.txt)
 
   Here are all the options described with their defaults values and a few possible settings you might choose to use:
 
-    stream = require('connect-stream');
+```javascript
+stream = require('connect-stream');
 
-    app.use(stream(path.resolve('public'), { // root path for static files. defaults to `/`
-      trim: false, // do not trim query strings
-      trim: true, // trim all query strings using url.parse
+app.use(stream(path.resolve('public'), { // root path for static files. defaults to `/`
+  trim: false, // do not trim query strings
+  trim: true, // trim all query strings using url.parse
 
-      concatenate: 'resolve', // use path.resolve on concatenate root and src path
-      concatenate: 'join', // use path.join on concatenate root and src path
+  concatenate: 'resolve', // use path.resolve on concatenate root and src path
+  concatenate: 'join', // use path.join on concatenate root and src path
 
-      passthrough: true, // calls next() instead of returning a 404 error
-      passthrough: false, // returns 404 when a file is not found
+  passthrough: true, // calls next() instead of returning a 404 error
+  passthrough: false, // returns 404 when a file is not found
 
-      cache: { // specify cache:false to turn off caching entirely
-        fd: {
-          max: 1000, // number of fd's to hang on to
-          maxAge: 1000 * 60 * 60, // amount of ms before fd's expire
-        },
+  cache: { // specify cache:false to turn off caching entirely
+    fd: {
+      max: 1000, // number of fd's to hang on to
+      maxAge: 1000 * 60 * 60, // amount of ms before fd's expire
+    },
 
-        stat: {
-          max: 5000, // number of stat objects to hang on to
-          maxAge: 1000 * 60, // number of ms that stats are good for
-        },
+    stat: {
+      max: 5000, // number of stat objects to hang on to
+      maxAge: 1000 * 60, // number of ms that stats are good for
+    },
 
-        content: {
-          max: 1024 * 1024 * 64, // how much memory to use on caching contents
-          maxAge: 1000 * 60 * 10, // how long to cache contents for
-        }
-      }
-    }));
+    content: {
+      max: 1024 * 1024 * 64, // how much memory to use on caching contents
+      maxAge: 1000 * 60 * 10, // how long to cache contents for
+    }
+  }
+}));
 
-    var callback = function (err, range, isFirstStream) {
-      console.error(err); // instanceof Error or null
-      console.log(range); // array ([ini, end]), request range of partial content
-                          // is null on error
-                          // is [0, stat.size - 1] on normal request
-      console.log(isFirstStream); // bool, request is first partial request or not
-    };
+var callback = function (err, range, isFirstStream) {
+  console.error(err); // instanceof Error or null
+  console.log(range);
+  // isArray ([ini, end])         : on range request
+  // isArray ([0, stat.size - 1]) : on normal request
+  // Null                         : on error
+  console.log(isFirstStream);
+  // bool, request is first range request or not
+};
 
-    app.get(/^\/(.*)\.mp4$/, function (req, res) {
-      res.stream(req.params[0] + '.mp4', callback);
-    });
+app.get(/^\/(.*)\.mp4$/, function (req, res) {
+  res.stream(req.params[0] + '.mp4', callback);
+});
 
-    var options = {
-      headers: {
-        'content-type': 'application/octet-stream',
-        'cache-control': 'public'
-      }
-    };
+var options = {
+  headers: {
+    'content-type': 'application/octet-stream',
+    'cache-control': 'public'
+  }
+};
 
-    app.get(/^\/download\/(.*)\.mp4$/, function (req, res) {
-      res.stream(req.params[0] + '.mp4', options, callback);
-    });
-
-
-## Upgrade
-
-  some method chaged.
-
-
-### interface example
-
-    app.use require 'connect-stream'     # old
-    app.use (require 'connect-stream')() # new
+app.get(/^\/download\/(.*)\.mp4$/, function (req, res) {
+  res.stream(req.params[0] + '.mp4', options, callback);
+});
+```
 
 
-### behavior example
+## Upgrade Guide
 
-    app.use (require 'connect-stream') path.resolve('public'),
-      concatenate: 'join' # default
-
-    app.get (req, res) ->
-      res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
-                              # new, stream from "public/tmp/a.mp4" (path.join (path.resolve 'public'), '/tmp/a.mp4')
+  some method changed.
 
 
-    app.use (require 'connect-stream') path.resolve('public'),
-      concatenate: 'resolve'
+### interface
 
-    app.get (req, res) ->
-      res.stream '/tmp/a.mp4' # old, always stream "/tmp/a.mp4"
-                              # new, stream from "/tmp/a.mp4" (path.resolve 'public', '/tmp/a.mp4')
+```javascript
+app.use(require('connect-stream'));    // old
+app.use(require('connect-stream')());  // new
+```
+
+
+### behavior
+
+```javascript
+var stream = require('connect-stream');
+app.use(stream(path.resolve('public'), {
+  concatenate: 'join' // default
+});
+
+app.get(function (req, res) {
+  res.stream('/tmp/a.mp4');
+  // old, always stream "/tmp/a.mp4"
+  // new, stream from "public/tmp/a.mp4"
+  // | path.join(path.resolve('public'), '/tmp/a.mp4');
+});
+```
+
+```javascript
+var stream = require('connect-stream');
+app.use(stream(path.resolve('public'), {
+  concatenate: 'resolve'
+});
+
+app.get(function (req, res) {
+  res.stream('/tmp/a.mp4');
+  // old, always stream "/tmp/a.mp4"
+  // new, stream from "/tmp/a.mp4"
+  // | path.resolve(path.resolve('public'), '/tmp/a.mp4');
+});
+```
 
 
 ## Tips
 
-### count up your database on partial request (e.g. playing movie)
+### count up your database on range request (e.g. playing movie)
 
-  partial request requests many at one request
+  range request requests many at one request.
 
-  you should use callback for count playing
+  you should use callback for count playing.
 
   Example:
 
-    app.get (req, res) ->
-      res.stream 'movie.mp4', (err, range, isFirstStream) ->
-        # response ended
-        countupDatabase() if isFirstStream
+```javascript
+app.get('/movie.mp4', function (req, res) {
+  res.stream('movie.mp4', function (err, range, isFirstStream) {
+    if (isFirstStream) {
+      countUpYourDatabaseHere();
+    }
+  });
+});
+```
 
 ## Feature
 
 ### gzip
 
-  browser requested with encoding 'gzip' allowed, returns gzip stream with 200.
+  streaming gzip if encoding `gzip` allowed
 
 ### cache
 
-#### server side
+  cache `fd`, `stat` and `gzip content` using [isaacs/async-cache](https://github.com/isaacs/async-cache)
 
-  file descriptor, `fs.stat` and gzipped content will be cached with configured caching storategies.
-
-  partial response don't allowed gzip encoding, that content won't be cached.
-
-#### client side
-
-  captured `if-modified-since` or `if-none-match`, return 304.
+  returns 304 if match `if-modified-since` or `if-none-match`
 
 ### behavior
 
@@ -156,46 +182,58 @@
 
 ##### join method
 
-    app.use(stream(path.resolve('public')));
+```javascript
+  app.use(stream(path.resolve('public')));
 
-    app.get('/a.mp4', function (req, res) {
-      res.stream('/a.mp4'); // returns "./public/a.mp4"
-    });
+  app.get('/a.mp4', function (req, res) {
+    res.stream('/a.mp4'); // returns "./public/a.mp4"
+  });
+```
 
 ##### resolve method
 
-    app.use(stream(path.resolve('public'), {
-      concatenate: 'resolve'
-    }));
+```javascript
+app.use(stream(path.resolve('public'), {
+  concatenate: 'resolve'
+}));
 
-    app.get('/a.mp4', function (req, res) {
-      res.stream('/tmp/a.mp4'); // returns "/tmp/a.mp4"
-    });
+app.get('/a.mp4', function (req, res) {
+  res.stream('/tmp/a.mp4'); // returns "/tmp/a.mp4"
+});
+
+app.get('/a.mp4', function (req, res) {
+  res.stream('tmp/a.mp4'); // returns "./public/tmp/a.mp4"
+});
+```
 
 #### passthrough
 
 ##### true
 
-    app.use(stream(path.resolve('public')));
-    app.use(function (req, res) {
-      res.stream(path.resolve('public', '404.html')); // returns 404.html with 404
-    });
+```javascript
+app.use(stream(path.resolve('public')));
+app.use(function (req, res) {
+  res.stream(path.resolve('public', '404.html')); // returns 404.html with 404
+});
 
-    app.get('/notexists.mp4', function (req, res) {
-      res.stream('/notexists.mp4'); // call next()
-    });
+app.get('/notexists.mp4', function (req, res) {
+  res.stream('/notexists.mp4'); // call next()
+});
+```
 
 ##### false
 
-    app.use(stream(path.resolve('public')));
-    app.use(function (req, res) {
-      res.stream(path.resolve('public', '404.html')); // ignored
-    });
-    app.use(express.errorHandler()); // called
+```javascript
+app.use(stream(path.resolve('public')));
+app.use(function (req, res) {
+  res.stream(path.resolve('public', '404.html')); // ignored
+});
+app.use(express.errorHandler()); // called
 
-    app.get('/notexists.mp4', function (req, res) {
-      res.stream('/notexists.mp4'); // call next(err)
-    });
+app.get('/notexists.mp4', function (req, res) {
+  res.stream('/notexists.mp4'); // call next(err)
+});
+```
 
 ## MIT LICENSE
 
