@@ -283,3 +283,4 @@ class Stream
           stream.on 'end', ->
             cb null, [ini, end], isFirstStream
             process.nextTick fdend
+            
