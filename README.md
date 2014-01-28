@@ -21,7 +21,7 @@ $ npm i connect-stream
 
 ```javascript
 var stream = require('connect-stream'); // function
-app.set(stream(path.resolve('public'), {}));
+app.use(stream(path.resolve('public')));
 ```
 
   Use:
