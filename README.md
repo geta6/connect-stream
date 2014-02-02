@@ -21,8 +21,8 @@ $ npm install connect-stream
   Include in your project:
 
 ```javascript
-var connect_stream = require('connect-stream');
-app.use(connect_stream(__dirname + 'public'));
+var stream = require('connect-stream'); // function
+app.use(stream(path.resolve('public')));
 ```
 
   Use in your routes:
