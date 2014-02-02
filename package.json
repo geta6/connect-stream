@@ -4,7 +4,7 @@
   "description": "A module for streaming static files. Does etags, caching, partial response, etc.",
   "main": "lib/stream.js",
   "scripts": {
-    "test": "make test"
+    "test": "grunt test"
   },
   "repository": {
     "type": "git",
@@ -25,9 +25,16 @@
   },
   "devDependencies": {
     "coffee-script": "~1.6.3",
-    "supertest": "~0.8.1",
-    "express": "~3.4.4",
-    "mocha": "~1.14.0"
+    "coffee-errors": "~0.8.6",
+    "supertest": "~0.9.0",
+    "express": "~3.4.8",
+    "mocha": "~1.17.1",
+    "grunt": "~0.4.2",
+    "grunt-contrib-coffee": "~0.9.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-simple-mocha": "~0.4.0",
+    "grunt-coffeelint": "0.0.8",
+    "grunt-notify": "~0.2.17"
   },
   "author": "geta6",
   "licenses": "MIT",

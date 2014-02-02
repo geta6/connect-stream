@@ -1,12 +1,8 @@
 module.exports = (root, opts) ->
   stream = new Stream root, opts
   return (req, res, next) ->
-    res.stream = (src, args...) ->
-      opt = {}
-      cb = ->
-      for arg in args
-        cb = arg if typeof arg is 'function'
-        opt = arg if typeof arg is 'object'
+    res.stream = (src, opt = {}, cb = ->) ->
+      cb = opt if typeof opt is 'function'
       stream.serve src, opt, cb, req, res, next
     return next()
 
@@ -18,10 +14,11 @@ class Stream
   http = require 'http'
   zlib = require 'zlib'
   mime = require 'mime'
-  negotiator = require 'negotiator'
+  Negotiator = require 'negotiator'
+  asyncCache = require 'async-cache'
 
   opts:
-    root: '/'
+    root: process.cwd()
     trim: yes
     concatenate: 'join' # resolve
     passthrough: no
@@ -66,8 +63,6 @@ class Stream
       @opts.cache.content.max = opts.cache.content.max
     if opts.cache?.content?.maxAge?
       @opts.cache.content.maxAge = opts.cache.content.maxAge
-
-    asyncCache = require 'async-cache'
 
     if opts.cache is no
       @opts.cache.fd.max = 1
@@ -127,7 +122,7 @@ class Stream
   isAcceptGzip: (src, req) ->
     gz = false
     unless /\.t?gz$/.exec src
-      neg = req.negotiator || new negotiator req
+      neg = req.negotiator || new Negotiator req
       gz = neg.preferredEncoding(['gzip', 'identity']) is 'gzip'
     return gz
 
@@ -158,7 +153,7 @@ class Stream
       throw new Error '`src` should not be blank, res.stream(src, callback).'
 
     if typeof cb isnt 'function'
-      console.error '`callback` should not be function, res.stream(src, callback).'
+      console.error '`callback` should be function, res.stream(src, callback).'
       cb = ->
 
     src = path[@opts.concatenate] @opts.root, src
@@ -220,10 +215,13 @@ class Stream
           cb err, [ini, end], isFirstStream
           return @error err, res, next, fdend
 
-        res.setHeader 'cache-control', opt.headers?['cache-control'] || 'public'
+        cache = opt.headers?['cache-control'] || 'public'
+        ctype = opt.headers?['content-type'] || mime.lookup path.extname src
+
+        res.setHeader 'cache-control', cache
         res.setHeader 'last-modified', stat.mtime.toUTCString()
         res.setHeader 'etag', etag
-        res.setHeader 'content-type', opt.headers?['content-type'] || mime.lookup path.extname src
+        res.setHeader 'content-type', ctype
 
         unless partial
           res.statusCode = 200
@@ -255,7 +253,8 @@ class Stream
           stream.destroy = ->
 
           stream.on 'error', (err) =>
-            console.error 'Error serving %s fd=%d\n%s', src, fd, err.stack || err.message
+            err = err.stack || err.message
+            console.error 'Error serving %s fd=%d\n%s', src, fd, err
             res.socket.destroy()
             return fdend()
 
@@ -283,4 +282,3 @@ class Stream
           stream.on 'end', ->
             cb null, [ini, end], isFirstStream
             process.nextTick fdend
-            

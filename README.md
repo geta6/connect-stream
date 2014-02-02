@@ -1,42 +1,48 @@
-# connect-stream
-
-  Serving static file with the given paths.
-
-  Inspired by [isaacs/st](https://github.com/isaacs/st)
-
-  ![](https://nodei.co/npm/connect-stream.png)
+# Connect Stream
 
   ![](https://travis-ci.org/geta6/connect-stream.png)
 
+  Serving static file with the given path.
+  Inspired by [isaacs/st](https://github.com/isaacs/st).
+
+  * compatible with return code `200`, `206`, `304`, `403`, `404`, `500`
+  * cache fd, stat and gzip content
+  * gzip deflatable
+  * useful to serve movie to mobile device
+
+## Install
+
+```
+$ npm install connect-stream
+```
 
 ## Usage
-
-  Start coding:
-
-```sh
-$ npm i connect-stream
-```
 
   Include in your project:
 
 ```javascript
-var stream = require('connect-stream'); // function
-app.set(stream(path.resolve('public'), {}));
+var connect_stream = require('connect-stream');
+app.use(connect_stream(__dirname + 'public'));
 ```
 
-  Use:
+  Use in your routes:
 
 ```javascript
 app.get(function (req, res) {
-  return res.stream('movie.mp4', function (err, range, first) {
-  });
+  return res.stream('movie.mp4');
 });
 ```
 
+  * It returns `200` if normal request.
+  * It returns `206` if partial request.
+  * It returns `304` if ETag or Modified-Since matched.
+  * It returns `404` if `movie.mp4` not exists.
+  * It returns `403` if `movie.mp4` permission denied.
+  * It returns `500` if error.
 
 ## How to use
 
-  connect-stream respond to Range Request (HTTP 206) correctly.
+  `connect-stream` respond to Range Request (HTTP 206) correctly.
 
   [14.35 Range - W3, RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616.txt)
 
@@ -45,7 +51,7 @@ app.get(function (req, res) {
 ```javascript
 stream = require('connect-stream');
 
-app.use(stream(path.resolve('public'), { // root path for static files. defaults to `/`
+app.use(stream(path.resolve('public'), { // root path for static files. defaults to `process.cwd()`
   trim: false, // do not trim query strings
   trim: true, // trim all query strings using url.parse
 
@@ -100,10 +106,7 @@ app.get(/^\/download\/(.*)\.mp4$/, function (req, res) {
 ```
 
 
-## Upgrade Guide
-
-  some method changed.
-
+## Upgrade Guide (0.x -> 1.x)
 
 ### interface
 
@@ -117,15 +120,12 @@ app.use(require('connect-stream')());  // new
 
 ```javascript
 var stream = require('connect-stream');
-app.use(stream(path.resolve('public'), {
-  concatenate: 'join' // default
-});
+app.use(stream(path.resolve('public')));
 
 app.get(function (req, res) {
   res.stream('/tmp/a.mp4');
   // old, always stream "/tmp/a.mp4"
   // new, stream from "public/tmp/a.mp4"
-  // | path.join(path.resolve('public'), '/tmp/a.mp4');
 });
 ```
 
@@ -139,7 +139,6 @@ app.get(function (req, res) {
   res.stream('/tmp/a.mp4');
   // old, always stream "/tmp/a.mp4"
   // new, stream from "/tmp/a.mp4"
-  // | path.resolve(path.resolve('public'), '/tmp/a.mp4');
 });
 ```
 
@@ -148,9 +147,9 @@ app.get(function (req, res) {
 
 ### count up your database on range request (e.g. playing movie)
 
-  range request requests many at one request.
+  range-request requests sequential at one request.
 
-  you should use callback for count playing.
+  you should use filter in callback for count up play-times.
 
   Example:
 
@@ -161,77 +160,6 @@ app.get('/movie.mp4', function (req, res) {
       countUpYourDatabaseHere();
     }
   });
-});
-```
-
-## Feature
-
-### gzip
-
-  streaming gzip if encoding `gzip` allowed
-
-### cache
-
-  cache `fd`, `stat` and `gzip content` using [isaacs/async-cache](https://github.com/isaacs/async-cache)
-
-  returns 304 if match `if-modified-since` or `if-none-match`
-
-### behavior
-
-#### concatenate
-
-##### join method
-
-```javascript
-  app.use(stream(path.resolve('public')));
-
-  app.get('/a.mp4', function (req, res) {
-    res.stream('/a.mp4'); // returns "./public/a.mp4"
-  });
-```
-
-##### resolve method
-
-```javascript
-app.use(stream(path.resolve('public'), {
-  concatenate: 'resolve'
-}));
-
-app.get('/a.mp4', function (req, res) {
-  res.stream('/tmp/a.mp4'); // returns "/tmp/a.mp4"
-});
-
-app.get('/a.mp4', function (req, res) {
-  res.stream('tmp/a.mp4'); // returns "./public/tmp/a.mp4"
-});
-```
-
-#### passthrough
-
-##### true
-
-```javascript
-app.use(stream(path.resolve('public')));
-app.use(function (req, res) {
-  res.stream(path.resolve('public', '404.html')); // returns 404.html with 404
-});
-
-app.get('/notexists.mp4', function (req, res) {
-  res.stream('/notexists.mp4'); // call next()
-});
-```
-
-##### false
-
-```javascript
-app.use(stream(path.resolve('public')));
-app.use(function (req, res) {
-  res.stream(path.resolve('public', '404.html')); // ignored
-});
-app.use(express.errorHandler()); // called
-
-app.get('/notexists.mp4', function (req, res) {
-  res.stream('/notexists.mp4'); // call next(err)
 });
 ```
 

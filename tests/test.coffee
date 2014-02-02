@@ -59,7 +59,7 @@ describe 'connect-stream', ->
       .expect(206)
       .expect(sample.text.slice(0, 1))
       .end (err, http) ->
-        if http.res['content-encoding']? and http.res['content-encoding'] is 'gzip'
+        if http.res?['content-encoding'] is 'gzip'
           return done new Error(), http
         return done err
 
@@ -71,7 +71,7 @@ describe 'connect-stream', ->
       .expect(206)
       .expect(sample.text.slice(0, 2))
       .end (err, http) ->
-        if http.res['content-encoding']? and http.res['content-encoding'] is 'gzip'
+        if http.res?['content-encoding'] is 'gzip'
           return done new Error(), http
         return done err
 
